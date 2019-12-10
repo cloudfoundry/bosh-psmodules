@@ -475,9 +475,9 @@ Describe "New-VersionFile" {
         $versionFileDestination = "/var/vcap/bosh/etc/stemcell_version"
     }
 
-    AfterEach {
-        Remove-Item -ErrorAction Ignore -Recurse "/var/vcap/bosh/etc"
-    }
+#    AfterEach {
+#        Remove-Item -ErrorAction Ignore "/var/vcap/bosh/etc/stemcell_version"
+#    }
 
     It "creates a version file with OS major.minor -Version parameter value as content" {
         $version = '1803.456.17-build.2'
