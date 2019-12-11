@@ -5,6 +5,9 @@ Remove-Module -Name BOSH.AutoLogon -ErrorAction Ignore
 
 Remove-Module -Name BOSH.Utils -ErrorAction Ignore
 Import-Module ./BOSH.Utils.psm1
+Remove-Module -Name AbsolutePathChroot -ErrorAction Ignore
+Import-Module ./AbsolutePathChroot.psm1
+
 
 #As of now, this function only supports DWords and Strings.
 function Restore-RegistryState {
@@ -472,12 +475,15 @@ Describe "Get-WUCerts" {
 
 Describe "New-VersionFile" {
     BeforeEach {
-        $versionFileDestination = "/var/vcap/bosh/etc/stemcell_version"
+        $versionFileDestination = "./var/vcap/bosh/etc/stemcell_version"
+        Mock New-Item -Module BOSH.Utils {
+            AbsolutePathChroot-New-Item @Args
+        }
     }
 
-#    AfterEach {
-#        Remove-Item -ErrorAction Ignore "/var/vcap/bosh/etc/stemcell_version"
-#    }
+    AfterEach {
+        Remove-Item -ErrorAction Ignore -Recurse "./var"
+    }
 
     It "creates a version file with OS major.minor -Version parameter value as content" {
         $version = '1803.456.17-build.2'
@@ -496,6 +502,7 @@ Describe "New-VersionFile" {
 
 function getWindowsOptionalFeatureState {
     param([string] $featureName)
+    sleep -Milliseconds 500
     $obj = Get-WindowsOptionalFeature -Online -FeatureName $featureName
     return $obj.State
 }
