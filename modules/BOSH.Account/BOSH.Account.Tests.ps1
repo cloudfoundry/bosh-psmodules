@@ -19,13 +19,14 @@ Describe "Account" {
     }
 
     Context "when the username and password are valid" {
-        $user = "Provisioner"
+        $timestamp=(get-date -UFormat "%s" -Millisecond 0)
+        $user = "TestUser_$timestamp"
         $password = "Password123!"
 
          BeforeEach {
-            $userExists = !!(gwmi -class Win32_UserAccount | Where {$_.Name -eq $user})
+            $userExists = !!(Get-LocalUser | Where {$_.Name -eq $user})
             if($userExists) {
-                Remove-Account -User $user -ErrorAction Ignore
+                Remove-LocalUser -Name $user
             }
         }
 
