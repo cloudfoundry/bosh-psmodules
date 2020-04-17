@@ -247,6 +247,9 @@ Describe "Invoke-Sysprep" {
             Mock Update-AWS2012R2Config { } -ModuleName BOSH.Sysprep
             Mock Update-AWS2016Config { } -ModuleName BOSH.Sysprep
             Mock Enable-AWS2016Sysprep { } -ModuleName BOSH.Sysprep
+
+            Mock Create-Unattend { } -ModuleName BOSH.Sysprep
+            Mock Invoke-Expression { } -ModuleName BOSH.Sysprep
         }
 
         Context "for AWS" {
@@ -303,6 +306,40 @@ Describe "Invoke-Sysprep" {
                 Assert-MockCalled Enable-AWS2016Sysprep -Times 0 -Scope It -ModuleName BOSH.Sysprep
                 Assert-MockCalled Update-AWS2012R2Config -Times 0 -Scope It -ModuleName BOSH.Sysprep
                 Assert-MockCalled Start-Process -Times 0 -Scope It -ParameterFilter { $FilePath -eq "C:\Program Files\Amazon\Ec2ConfigService\Ec2Config.exe" -and $ArgumentList -eq "-sysprep" } -ModuleName BOSH.Sysprep
+            }
+        }
+        Context "for vSphere" {
+            It "creates an unattend file" {
+                Invoke-Sysprep -IaaS vsphere
+
+                Assert-MockCalled Create-Unattend -ModuleName BOSH.Sysprep -ParameterFilter {
+                    $NewPassword -ne $null `
+                        -and $ProductKey -ne $null `
+                            -and $Organization -ne $null `
+                                -and $Owner -ne $null
+                }
+            }
+
+            It "calls windows sysprep and quits" {
+
+                Invoke-Sysprep -IaaS vsphere
+
+                Assert-MockCalled Invoke-Expression -Scope It -ModuleName BOSH.Sysprep -ParameterFilter {
+                    $Command -like '*sysprep.exe*/quit*' }
+            }
+            It "calls windows sysprep with unattend file" {
+
+                Invoke-Sysprep -IaaS vsphere
+
+                Assert-MockCalled Invoke-Expression -Scope It -ModuleName BOSH.Sysprep -ParameterFilter {
+                    $Command -like '*sysprep.exe*/unattend*unattend.xml*' }
+            }
+            It "calls windows sysprep with correct parameters to generalize the image, and next boot with oobe" {
+
+                Invoke-Sysprep -IaaS vsphere
+
+                Assert-MockCalled Invoke-Expression -Scope It -ModuleName BOSH.Sysprep -ParameterFilter {
+                    $Command -like '*sysprep.exe*/generalize*/oobe*' }
             }
         }
 
