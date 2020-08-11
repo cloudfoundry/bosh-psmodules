@@ -320,12 +320,12 @@ Describe "Invoke-Sysprep" {
                 }
             }
 
-            It "calls windows sysprep and quits" {
+            It "calls windows sysprep and shuts down" {
 
                 Invoke-Sysprep -IaaS vsphere
 
                 Assert-MockCalled Invoke-Expression -Scope It -ModuleName BOSH.Sysprep -ParameterFilter {
-                    $Command -like '*sysprep.exe*/quit*' }
+                    $Command -like '*sysprep.exe*/shutdown*' }
             }
             It "calls windows sysprep with unattend file" {
 
