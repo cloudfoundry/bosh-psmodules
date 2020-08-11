@@ -249,6 +249,11 @@ Describe "Invoke-Sysprep" {
             Mock Enable-AWS2016Sysprep { } -ModuleName BOSH.Sysprep
 
             Mock Create-Unattend { } -ModuleName BOSH.Sysprep
+            Mock Create-Unattend-GCP { } -ModuleName BOSH.Sysprep
+
+            function GCESysprep {}
+            Mock GCESysprep {} -ModuleName BOSH.Sysprep
+
             Mock Invoke-Expression { } -ModuleName BOSH.Sysprep
         }
 
@@ -340,6 +345,14 @@ Describe "Invoke-Sysprep" {
 
                 Assert-MockCalled Invoke-Expression -Scope It -ModuleName BOSH.Sysprep -ParameterFilter {
                     $Command -like '*sysprep.exe*/generalize*/oobe*' }
+            }
+        }
+
+        Context "for GCP" {
+            It "creates an unattend file" {
+                Invoke-Sysprep -IaaS gcp
+
+                Assert-MockCalled Create-Unattend-GCP -ModuleName BOSH.Sysprep
             }
         }
 
@@ -552,6 +565,37 @@ Describe "Create-Unattend" {
             $unattendXML.SelectSingleNode("//ns:RegisteredOrganization", $ns).'#text' | Should Be 'Test-Org'
             $unattendXML.SelectSingleNode("//ns:RegisteredOwner", $ns).'#text' | Should Be 'Test-Owner'
         }
+    }
+}
+
+Describe "Create-Unattend-GCP" {
+    BeforeEach {
+        $UnattendDestination = (New-TempDir)
+    }
+    AfterEach {
+        Remove-Item -Recurse -Force $UnattendDestination
+    }
+
+    It "places the generated Unattend file in the specified directory" {
+        {
+            Create-Unattend-GCP -UnattendDestination $UnattendDestination
+        } | Should -Not -Throw
+
+        Test-Path (Join-Path $UnattendDestination "unattended.xml") | Should Be $True
+    }
+
+    It "sets the timezone to UTC" {
+        {
+            Create-Unattend-GCP -UnattendDestination $UnattendDestination
+        } | Should -Not -Throw
+
+        $unattendPath = (Join-Path $UnattendDestination "unattended.xml")
+        [xml]$unattendXML = Get-Content -Path $unattendPath
+        $timezones = $unattendXML.unattend.settings.component.TimeZone |
+            Where-Object { $_ -ne $null }
+
+        $timezones.count | Should -BeGreaterOrEqual 1
+        $timezones | ForEach-Object { $_ | Should -Be "UTC" }
     }
 }
 

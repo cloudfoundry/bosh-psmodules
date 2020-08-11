@@ -214,6 +214,9 @@ function Check-Default-GCP-Unattend() {
 }
 
 function Create-Unattend-GCP() {
+  Param (
+    [string]$UnattendDestination = "C:\Program Files\Google\Compute Engine\sysprep"
+  )
   $UnattendXML = @'
 <?xml version="1.0" encoding="utf-8"?>
 <unattend xmlns="urn:schemas-microsoft-com:unattend">
@@ -230,7 +233,7 @@ function Create-Unattend-GCP() {
     <component name="Microsoft-Windows-Shell-Setup" processorArchitecture="amd64" publicKeyToken="31bf3856ad364e35" language="neutral" versionScope="nonSxS" xmlns:wcm="http://schemas.microsoft.com/WMIConfig/2002/State" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
       <!-- Random ComputerName, will be replaced by specialize script -->
       <ComputerName></ComputerName>
-      <TimeZone>Greenwich Standard Time</TimeZone>
+      <TimeZone>UTC</TimeZone>
     </component>
   </settings>
   <settings pass="oobeSystem">
@@ -255,7 +258,7 @@ function Create-Unattend-GCP() {
       </OOBE>
       <!-- Setting timezone to GMT -->
       <ShowWindowsLive>false</ShowWindowsLive>
-      <TimeZone>Greenwich Standard Time</TimeZone>
+      <TimeZone>UTC</TimeZone>
       <!--Setting OEM information -->
       <OEMInformation>
         <Manufacturer>Google Cloud Platform</Manufacturer>
@@ -268,7 +271,8 @@ function Create-Unattend-GCP() {
 </unattend>
 '@
 
-  $UnattendPath = "C:\Program Files\Google\Compute Engine\sysprep\unattended.xml"
+  $UnattendPath = Join-Path $UnattendDestination "unattended.xml"
+
   Out-File -FilePath $UnattendPath -InputObject $UnattendXML -Encoding utf8 -Force
 }
 
