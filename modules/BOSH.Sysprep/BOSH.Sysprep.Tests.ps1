@@ -249,7 +249,11 @@ Describe "Invoke-Sysprep" {
             Mock Enable-AWS2016Sysprep { } -ModuleName BOSH.Sysprep
 
             Mock Create-Unattend { } -ModuleName BOSH.Sysprep
+            Mock Create-Unattend-AWS { } -ModuleName BOSH.Sysprep
             Mock Create-Unattend-GCP { } -ModuleName BOSH.Sysprep
+
+            function Disable-AgentService {}
+            Mock Disable-AgentService { } -ModuleName BOSH.Sysprep
 
             function GCESysprep {}
             Mock GCESysprep {} -ModuleName BOSH.Sysprep

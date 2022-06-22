@@ -235,6 +235,15 @@ function Create-Unattend-GCP() {
       <ComputerName></ComputerName>
       <TimeZone>UTC</TimeZone>
     </component>
+    <component name="Microsoft-Windows-Deployment" processorArchitecture="amd64" publicKeyToken="31bf3856ad364e35" language="neutral" versionScope="nonSxS" xmlns:wcm="http://schemas.microsoft.com/WMIConfig/2002/State" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+      <RunAsynchronous>
+        <RunAsynchronousCommand wcm:action="add">
+          <Path>powershell Enable-AgentService</Path>
+          <Order>1</Order>
+          <Description>Enable Bosh Agent Service</Description>
+        </RunAsynchronousCommand>
+      </RunAsynchronous>
+    </component>
   </settings>
   <settings pass="oobeSystem">
     <!-- Setting Location Information -->
@@ -431,6 +440,7 @@ function Invoke-Sysprep()
       }
     }
     "gcp" {
+      Disable-AgentService
       Create-Unattend-GCP
       GCESysprep
     }
