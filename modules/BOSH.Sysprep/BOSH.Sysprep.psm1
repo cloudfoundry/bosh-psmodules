@@ -343,27 +343,6 @@ function Remove-UserAccounts {
   $content.Save($AnswerFilePath)
 }
 
-function Update-AWS2012R2Config {
-  $ec2config = [xml] (get-content 'C:\Program Files\Amazon\Ec2ConfigService\Settings\config.xml')
-
-  # Enable password generation and retrieval
-  ($ec2config.ec2configurationsettings.plugins.plugin | where { $_.Name -eq "Ec2SetPassword" }).State = 'Enabled'
-
-  # Disable SetDnsSuffixList setting
-  $ec2config.ec2configurationsettings.GlobalSettings.SetDnsSuffixList = "false"
-
-  $ec2config.Save("C:\Program Files\Amazon\Ec2ConfigService\Settings\config.xml")
-
-  # Enable sysprep
-  $ec2settings = [xml] (get-content 'C:\Program Files\Amazon\Ec2ConfigService\Settings\BundleConfig.xml')
-  ($ec2settings.BundleConfig.Property | where { $_.Name -eq "AutoSysprep" }).Value = 'Yes'
-
-  # Don't shutdown when running sysprep, let packer do it
-  # ($ec2settings.BundleConfig.GeneralSettings.Sysprep | where { $_.AnswerFilePath -eq "sysprep2008.xml" }).Switches = "/oobe /quit /generalize"
-
-  $ec2settings.Save('C:\Program Files\Amazon\Ec2ConfigService\Settings\BundleConfig.xml')
-}
-
 function Update-AWS2016Config
 {
   $LaunchConfigJson = 'C:\ProgramData\Amazon\EC2-Windows\Launch\Config\LaunchConfig.json'
