@@ -112,6 +112,15 @@ function Create-Unattend {
             </Interface>
         </Interfaces>
     </component>
+    <component name="Microsoft-Windows-Deployment" processorArchitecture="amd64" publicKeyToken="31bf3856ad364e35" language="neutral" versionScope="nonSxS" xmlns:wcm="http://schemas.microsoft.com/WMIConfig/2002/State" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+      <RunAsynchronous>
+        <RunAsynchronousCommand wcm:action="add">
+          <Path>powershell Enable-AgentService</Path>
+          <Order>1</Order>
+          <Description>Enable Bosh Agent Service</Description>
+        </RunAsynchronousCommand>
+      </RunAsynchronous>
+    </component>
   </settings>
   <settings pass="generalize">
     <component name="Microsoft-Windows-PnpSysprep" processorArchitecture="amd64" publicKeyToken="31bf3856ad364e35" language="neutral" versionScope="nonSxS" xmlns:wcm="http://schemas.microsoft.com/WMIConfig/2002/State" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
@@ -364,6 +373,33 @@ function Update-AWS2016Config
   $LaunchConfig | ConvertTo-Json | Set-Content $LaunchConfigJson
 }
 
+function Create-Unattend-AWS
+{
+  $UnattendedXmlPath = 'C:\ProgramData\Amazon\EC2-Windows\Launch\Sysprep\Unattend.xml'
+  $UnattendedContent = [xml](Get-Content $UnattendedXmlPath)
+  $SpecializeSettings = ($UnattendedContent.unattend.settings | Where-Object { $_.pass -EQ "specialize" })
+  $WindowsDeploymentComponent = ($SpecializeSettings.component | Where-Object { $_.name -EQ "Microsoft-Windows-Deployment" })
+  $runasync = $UnattendedContent.CreateElement("RunAsynchronous", $UnattendedContent.unattend.xmlns)
+  $WindowsDeploymentComponent.AppendChild($runasync)
+  $runasynccommand = $UnattendedContent.CreateElement("RunAsynchronousCommand", $UnattendedContent.unattend.xmlns)
+  $runasync.AppendChild($runasynccommand)
+  $runasynccommand.SetAttribute("action", $WindowsDeploymentComponent.wcm, "add")
+  $pathElement = $UnattendedContent.CreateElement("Path", $UnattendedContent.unattend.xmlns)
+  $pathText = $UnattendedContent.CreateTextNode("powershell Enable-AgentService")
+  $pathElement.AppendChild($pathText)
+  $runasynccommand.AppendChild($pathElement)
+  $orderElement = $UnattendedContent.CreateElement("Order", $UnattendedContent.unattend.xmlns)
+  $orderText = $UnattendedContent.CreateTextNode("1")
+  $orderElement.AppendChild($orderText)
+  $runasynccommand.AppendChild($orderElement)
+  $descElement = $UnattendedContent.CreateElement("Description", $UnattendedContent.unattend.xmlns)
+  $descText = $UnattendedContent.CreateTextNode("Enable Bosh Agent Service")
+  $descElement.AppendChild($descText)
+  $runasynccommand.AppendChild($descElement)
+
+  $UnattendedContent.Save($UnattendedXmlPath)
+}
+
 function Enable-AWS2016Sysprep {
   # Enable sysprep
   cd 'C:\ProgramData\Amazon\EC2-Windows\Launch\Scripts'
@@ -428,16 +464,10 @@ function Invoke-Sysprep()
 
   switch ($IaaS) {
     "aws" {
-      switch ($OsVersion) {
-        "windows2012R2" {
-          Update-AWS2012R2Config
-          Start-Process "C:\Program Files\Amazon\Ec2ConfigService\Ec2Config.exe" -ArgumentList "-sysprep" -Wait
-        }
-        {($_ -eq"windows2016") -or ($_ -eq"windows1803") -or ($_ -eq"windows2019")} {
-          Update-AWS2016Config
-          Enable-AWS2016Sysprep
-        }
-      }
+      Disable-AgentService
+      Create-Unattend-AWS
+      Update-AWS2016Config
+      Enable-AWS2016Sysprep
     }
     "gcp" {
       Disable-AgentService
@@ -448,6 +478,7 @@ function Invoke-Sysprep()
       C:\Windows\System32\Sysprep\sysprep.exe /generalize /quiet /oobe /quit
     }
     "vsphere" {
+      Disable-AgentService
       Create-Unattend -NewPassword $NewPassword -ProductKey $ProductKey `
         -Organization $Organization -Owner $Owner
 
