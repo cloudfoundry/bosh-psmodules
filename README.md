@@ -38,3 +38,16 @@ cd "bosh-psmodules\module\BOSH.<module>"
 Invoke-Pester
 ```
 
+## Running a subset of tests on MacOS
+
+You can use Powershell and MacOS to run the tests that do not require Windows system calls:
+
+```
+cd ~/workspace
+brew install powershell
+git clone --depth 1 --branch 4.4.0 git@github.com:pester/Pester.git
+pwsh
+Import-Module ./Pester/Pester.psm1
+cd stembuild/module/BOSH.<module>
+Invoke-Pester
+```
