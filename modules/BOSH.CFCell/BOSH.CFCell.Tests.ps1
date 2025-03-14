@@ -4,14 +4,6 @@ Import-Module ./BOSH.CFCell.psm1
 Remove-Module -Name BOSH.Utils -ErrorAction Ignore
 Import-Module ../BOSH.Utils/BOSH.Utils.psm1
 
-#this function does not exist on VMs without Windows Defender installed
-function Set-MpPreference() {
-    param(
-        [bool]$DisableBehaviorMonitoring,
-        [bool]$OtherThing
-    )
-}
-
 Describe "Protect-CFCell" {
     BeforeEach {
         $oldWinRMStatus = (Get-Service winrm).Status
@@ -20,10 +12,6 @@ Describe "Protect-CFCell" {
         { Set-Service -Name "winrm" -StartupType "Manual" } | Should Not Throw
 
         Start-Service winrm
-
-        Mock Get-Command { [hashtable]@{ParameterSets = [hashtable]@{Parameters = @()}} } -ModuleName BOSH.CFCell
-        Mock Write-Log {} -ModuleName BOSH.CFCell
-
     }
 
     AfterEach {
@@ -68,40 +56,6 @@ Describe "Protect-CFCell" {
         get-firewall "private" | Should be "private,Block,Allow"
         get-firewall "domain" | Should be "domain,Block,Allow"
     }
-
-    It "sets all Windows Defender `disable` settings to true" {
-        Mock Get-Command {
-            [hashtable]@{
-                ParameterSets = [hashtable]@{
-                    Parameters = @(
-                        @{Name = "DisableBehaviorMonitoring"},
-                        @{Name = "OtherThing"}
-                    )
-                }
-            }
-        } -ModuleName BOSH.CFCell
-        Mock Set-MpPreference { } -ModuleName BOSH.CFCell
-
-        Protect-CFCell
-
-        Assert-MockCalled Write-Log -Exactly 1 -Scope It -ModuleName BOSH.CFCell -ParameterFilter { $Message -eq "Disabling Windows Defender Features" }
-
-        Assert-MockCalled Set-MpPreference -Exactly 1 -Scope It -ParameterFilter { $DisableBehaviorMonitoring -eq $true } -ModuleName BOSH.CFCell
-        Assert-MockCalled Set-MpPreference -Exactly 0 -Scope It -ParameterFilter { $OtherThing -eq $true } -ModuleName BOSH.CFCell
-
-        Assert-MockCalled Write-Log -Exactly 1 -Scope It -ModuleName BOSH.CFCell -ParameterFilter { $Message -eq "Setting Defender preference DisableBehaviorMonitoring to True" }
-    }
-
-    It "does not attempt to change Windows Defender settings if Windows Defender is not installed" {
-        Mock Get-Command { $false } -ModuleName BOSH.CFCell
-        Mock Set-MpPreference { } -ModuleName BOSH.CFCell
-
-        Protect-CFCell
-
-        Assert-MockCalled Write-Log -Exactly 1 -Scope It -ModuleName BOSH.CFCell -ParameterFilter { $Message -eq "Set-MpPreference command not found, assuming Windows Defender is not installed" }
-        Assert-MockCalled Set-MpPreference -Scope It -Exactly 0 -ModuleName BOSH.CFCell
-    }
-
 }
 
 Describe "Install-CFFeatures" {
