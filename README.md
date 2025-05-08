@@ -38,7 +38,23 @@ cd "bosh-psmodules\module\BOSH.<module>"
 Invoke-Pester
 ```
 
-## Running a subset of tests on MacOS
+
+### Running tests via Concourse
+
+```
+# Set as appropriate for your machine
+GREENHOUSE_CI_DIR="$HOME/Workspace/github.com/cloudfoundry/greenhouse-ci"
+PSMODULES_DIR="$HOME/Workspace/github.com/cloudfoundry/bosh-psmodules"
+
+fly -t bosh-ecosystem execute \
+    --tag=windows-nimbus \
+    --config "$GREENHOUSE_CI_DIR/tasks/test-units-bosh-psmodules/task.yml" \
+    --inputs-from=windows-2019-stemcell/test-bosh-psmodules \
+    --input=bosh-psmodules-repo="$PSMODULES_DIR" \
+    --input=ci="$GREENHOUSE_CI_DIR"
+```
+
+### Running a subset of tests on MacOS
 
 You can use Powershell and MacOS to run the tests that do not require Windows system calls:
 
@@ -51,3 +67,32 @@ Import-Module ./Pester/Pester.psm1
 cd stembuild/module/BOSH.<module>
 Invoke-Pester
 ```
+
+## Debugging
+
+You can debug powershell scripts using VSCode. It has some dependencies:
+- dotnet runtime `brew install dotnet`
+- powershell binary `brew install powershell`
+- vscode extensions: `Powershell`, `C#` and `C# Dev Kit` (the latter may not be required)
+
+You can create a launch.json file like:
+```json
+{
+    "version": "0.2.0",
+    "configurations": [
+
+        {
+            "name": "PowerShell: Run Pester Tests",
+            "type": "PowerShell",
+            "request": "launch",
+            "script": "Invoke-Pester",
+            "createTemporaryIntegratedConsole": true,
+            "attachDotnetDebugger": true,
+            "cwd": "${file}"
+        }
+    ]
+}
+```
+
+And you should be able to run tests for a single file using the debug view. If you're missing extensions 
+you'll see odd failures such as the wrong CWD leading to import failures.
